@@ -1,28 +1,26 @@
+import random
+
 from enum import IntEnum
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives import hashes
 class BloodType(IntEnum):
     AN = 0; AP = 1; BN = 2; BP = 3; ON = 4; OP = 5; ABP = 6; ABN = 7
     LAST = 8; # Number of entries
     
 class AbstractOTReceiver:
-    
-    def init(self):
-        """
-        The Receiver generates a public-private key pair using cryptography tools such as RSA. 
-        Noted as (pk, sk), it generates a random public key rk, 
-        but the receiver does not own the corresponding private key.
-        """
+
+    def __init__(self, key_size=2048):
         
-        self.public_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048,
-        ).public_key()
-
-        self.private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048
-        )
-
+        # Generate RSA key pair for the receiver
+        self.sk = rsa.generate_private_key(public_exponent=65537, key_size=key_size)
+        self.pk = self.sk.public_key()
+        
+        # Generate a second RSA key pair for the receiver
+        temp_key = rsa.generate_private_key(public_exponent=65537, key_size=key_size)
+        self.rk = temp_key.public_key()
+        
+        # The receiver does not keep the private key of the second key pair
+        del temp_key
 
     # Create OT request data for the chosen blood type
     def otRequest(self, c: BloodType):
@@ -31,8 +29,12 @@ class AbstractOTReceiver:
         Input: c - the chosen blood type index (0-7)
         Output: Request data that does not reveal c.
         """
-        pass
-    
+
+        # Random bit b in {0, 1, ..., k - 1}
+        b = random.randint(0, BloodType.LAST - 1)
+        
+        return bytes(0)
+
     # Return plaintext message from the sender's data
     def otReceiver(self, data) -> bytes:
         """
@@ -61,6 +63,7 @@ if __name__ == "__main__":
     
     chosen_blood_type = BloodType.ON
     request = receiver.otRequest(chosen_blood_type)
+    
     response = sender.otSend(private_messages, request)
     message = receiver.otReceiver(response)
     print(f"Received message: {message.decode()}")
