@@ -1,4 +1,5 @@
 import hashlib
+import math
 from enum import IntEnum
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import hashes, serialization
@@ -70,8 +71,29 @@ class AbstractOTSender:
         if computed_commitment != commitment:
             raise ValueError("Commitment does not match public keys")
 
-        ciphertexts = []
-        # for plaintext, public_key in zip(plaintexts, public_keys):
+        k = len(plaintexts)
+        h = math.ceil(math.log2(k))  # height of the binary tree
+        
+        num_leaves = 2 ** h
+        num_internal = num_leaves - 1
+        total_nodes = num_internal + num_leaves
+
+        tree_keys: list = [None] * total_nodes
+
+        # Generate private keys for internal nodes (including the root)
+        for idx in range(num_internal):
+            tree_keys[idx] = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+
+        # For each leaf, store the parent's public key
+        for leaf_idx in range(num_internal, total_nodes):
+            parent_idx = (leaf_idx - 1) // 2
+            tree_keys[leaf_idx] = tree_keys[parent_idx].public_key()
+
+
+        # # Encrypt each plaintext with the corresponding leaf node key
+        # ciphertexts = []
+        # for i, (plaintext, public_key) in enumerate(zip(plaintexts, public_keys)):
+        #     print(i, public_key)
         #     if public_key is None:
         #         raise ValueError("Invalid public key")
         #     try:
@@ -80,8 +102,8 @@ class AbstractOTSender:
         #         ciphertexts.append(ciphertext)
         #     except Exception:
         #         raise ValueError("Encryption failed for one of the messages.")
-            
-        return ciphertexts
+
+        # return ciphertexts
 
 def create_commitment(public_keys: list[rsa.RSAPublicKey]) -> str:
     pk_bytes = b""
