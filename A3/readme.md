@@ -23,3 +23,7 @@ My python library supports a privacy-preserving blood donor service that is base
   - `Func otReceive(data)`
 - `Class AbstractOTSender`
   - `Func otSend(plaintext, request)`
+
+# Dependencies
+- cryptography
+- unittest (for testing)

@@ -67,6 +67,7 @@ class BloodType(IntEnum):
     LAST = 8  # Number of entries
 
 class AbstractOTReceiver:
+    
     def __init__(self):
         # List of RSA private keys (one per layer). These must be kept secret.
         self.private_keys: list[rsa.RSAPrivateKey] = []
@@ -99,6 +100,7 @@ class AbstractOTReceiver:
         enc_pairs, ciphertexts = data
 
         # Recover one symmetric key per layer by decrypting the chosen entry
+        # There are 3 separate 1-out-of-2 OT protocols
         keys = []
         for i in range(3):
             enc_pair = enc_pairs[i]
@@ -109,7 +111,7 @@ class AbstractOTReceiver:
         # Combine the three keys (XOR) to form the final symmetric key
         final_key = xor_bytes(xor_bytes(keys[0], keys[1]), keys[2])
 
-        # Compute the index into the ciphertext list using bits b2,b1,b0
+        # Compute the index into the ciphertext list using bits b2, b1, b0
         index = (self.choice_bits[0] << 2) | (self.choice_bits[1] << 1) | (self.choice_bits[2] << 0)
         plaintext = xor_bytes(ciphertexts[index], final_key)
         return plaintext
